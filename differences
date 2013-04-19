@@ -1,0 +1,190 @@
+diff ../accrete/accrete.c ../accrete2/accrete.c
+67c71
+<      return (a * (1.0 + e) * (1.0 + reduced_mass) / (1.0 - cloud_eccentricity));
+---
+>      return (a * (1.0 + e) * (1.0 + mass) / (1.0 - cloud_eccentricity));
+
+diff ../accrete/const.h ../accrete2/const.h
+> extern double stell_mass_ratio, stell_luminosity_ratio, main_seq_life,
+> 	age, r_ecosphere;
+> extern int flag_graphics, flag_lisp;
+> 
+> char OP[] = "(";
+> char CP[] = ")";
+> 
+> 
+> void chart_system(innermost_planet)
+> planet_pointer innermost_planet;
+> {
+> }
+> 
+> void text_describe_system(innermost_planet)
+> planet_pointer innermost_planet;
+> {
+>      planet_pointer node1;
+5d93
+<      char word[(10)+1]; 
+8,15c96,105
+<      printf("Mass of central star (in solar masses): %4.2lf\n", stellar_mass_ratio);
+<      printf("Luminosity of central star (relative to the sun): %5.2lf\n",stellar_luminosity_ratio);
+<      printf("Total main sequence lifetime (in million yrs): %10.3lf\n", (main_seq_life / 1.0E6));
+<      printf("Current age of stellar system (in million yrs): %10.3lf\n",(age / 1.0E6));
+<      printf("Radius of habitable ecosphere (AU): %3.3lf\n",r_ecosphere);
+<      node1 = planet_head;
+<      counter = 1;
+<      while (node1 != NULL)
+---
+>      printf("Stellar mass: %4.2lf solar masses\n", stell_mass_ratio);
+>      printf("Stellar luminosity: %4.2lf\n",stell_luminosity_ratio);
+>      printf("Age: %5.3lf billion years  (%5.3lf billion left on main sequence)\n",
+> 	     (age /1.0E9),(main_seq_life - age) / 1.0E9);
+>      printf("Habitable ecosphere radius: %3.3lf AU\n",r_ecosphere);
+>      printf("\n");
+>      printf("Planets present at:\n");
+>      for (node1=innermost_planet, counter=1;
+> 	  node1 != NULL;
+> 	  node1=node1->next_planet, counter++)
+17c107,114
+< 	  printf("Planet #%d:\n",counter);
+---
+>         printf("%d\t%7.3lf \t AU\n", counter, node1->a);
+>      }
+>      printf("\n\n\n");
+>      for (node1=innermost_planet, counter=1;
+> 	  node1 != NULL;
+> 	  node1=node1->next_planet, counter++)
+>      {
+>           printf("Planet %d\t",counter);
+19c116,119
+< 	       printf("Gas giant...\n");
+---
+>                printf("*gas giant*\n");
+>           else printf("\n");
+> 	  if ((int)node1->day == (int)(node1->orb_period * 24.0))
+>                printf("Planet is tidally locked with one face to star.\n");
+21,29c121,123
+< 	       printf("In resonant period with primary.\n");
+< 	  printf("   Distance from primary star (in A.U.): %7.3lf\n",node1->a);
+< 	  printf("   Eccentricity of orbit: %5.3lf\n",node1->e);
+< 	  printf("   Mass (in Earth masses): %7.3lf\n",node1->mass * EARTH_MASSES_PER_SOLAR_MASS);
+< 	  printf("   Equatorial radius (in Km): %10.1lf\n",node1->radius);
+< 	  printf("   Density (in g/cc): %6.3lf\n",node1->density);
+< 	  printf("   Escape Velocity (in km/sec): %5.2lf\n",node1->escape_velocity / CM_PER_KM);
+< 	  printf("   Smallest molecular weight retained: %5.2lf\n",node1->molecule_weight);
+< 	  printf("   Surface acceleration (in cm/sec2): %6.2lf\n",node1->surface_accel);
+---
+>                printf("Planet's rotation is in a resonant spin lock with the star\n");
+>           printf("   Distance from primary star:\t%5.3lf\tAU\n",node1->a);
+>           printf("   Mass:\t\t\t%5.3lf\tEarth masses\n",node1->mass * SUN_MASS_IN_EARTH_MASSES);
+32,36c126,129
+< 	       printf("   Surface Gravity (in Earth gees): %5.2lf\n",node1->surface_grav);
+< 	       printf("   Boiling point of water (celcius): %4.1lf\n",(node1->boil_point - KELVIN_CELCIUS_DIFFERENCE));
+< 	       printf("   Surface Pressure (in atmospheres): %5.3lf",(node1->surface_pressure / 1000.0));
+< 	       if ((node1->greenhouse_effect) && (node1->surface_pressure > 0.0))
+< 		    printf("     RUNAWAY GREENHOUSE EFFECT\n");
+---
+>                printf("   Surface gravity:\t\t%4.2lf\tEarth gees\n",node1->surf_grav);
+>                printf("   Surface pressure:\t\t%5.3lf\tEarth atmospheres",(node1->surf_pressure / 1000.0));
+> 	       if ((node1->greenhouse_effect) && (node1->surf_pressure > 0.0))
+>                     printf("\tGREENHOUSE EFFECT\n");
+39,42c132,149
+< 	       printf("   Surface temperature (Celcius): %4.2lf\n",(node1->surface_temp - KELVIN_CELCIUS_DIFFERENCE));
+< 	       printf("   Hydrosphere percentage: %6.2lf\n",(node1->hydrosphere * 100.0));
+< 	       printf("   Cloud cover percentage: %6.2lf\n",(node1->cloud_cover * 100));
+< 	       printf("   Ice cover percentage: %6.2lf\n",(node1->ice_cover * 100));
+---
+>                printf("   Surface temperature:\t\t%4.2lf\tdegrees Celcius\n",(node1->surf_temp - KELVIN_CELCIUS_DIFFERENCE));
+> 	  }
+>           printf("   Equatorial radius:\t\t%3.1lf\tKm\n",node1->radius);
+>           printf("   Density:\t\t\t%5.3lf\tgrams/cc\n",node1->density);
+>           printf("   Eccentricity of orbit:\t%5.3lf\n",node1->e);
+>           printf("   Escape Velocity:\t\t%4.2lf\tKm/sec\n",node1->esc_velocity / CM_PER_KM);
+>           printf("   Molecular weight retained:\t%4.2lf and above\n",node1->molec_weight);
+>           printf("   Surface acceleration:\t%4.2lf\tcm/sec2\n",node1->surf_accel);
+>           printf("   Axial tilt:\t\t\t%d\tdegrees\n",node1->axial_tilt);
+>           printf("   Planetary albedo:\t\t%5.3lf\n",node1->albedo);
+>           printf("   Length of year:\t\t%4.2lf\tdays\n",node1->orb_period);
+>           printf("   Length of day:\t\t%4.2lf\thours\n",node1->day);
+> 	  if (!(node1->gas_giant))
+> 	  {
+>                printf("   Boiling point of water:\t%3.1lf\tdegrees Celcius\n",(node1->boil_point - KELVIN_CELCIUS_DIFFERENCE));
+>                printf("   Hydrosphere percentage:\t%4.2lf\n",(node1->hydrosphere * 100.0));
+>                printf("   Cloud cover percentage:\t%4.2lf\n",(node1->cloud_cover * 100));
+>                printf("   Ice cover percentage:\t%4.2lf\n",(node1->ice_cover * 100));
+44,49c151
+< 	  printf("   Axial tilt (in degrees): %d\n",node1->axial_tilt);
+< 	  printf("   Planetary albedo: %4.3lf\n",node1->albedo);
+< 	  printf("   Length of year (in days): %7.2lf\n",node1->orbital_period);
+< 	  printf("   Length of day (in hours): %7.2lf\n",node1->day);
+< 	  counter++;
+< 	  node1 = node1->next_planet;
+---
+>           printf("\n\n");
+something...
+> void display_system(innermost_planet)
+> planet_pointer innermost_planet;
+> {
+> 	if (flag_graphics)
+> 		chart_system(innermost_planet);
+> 	else if (flag_lisp)
+> 		lisp_describe_system(innermost_planet);
+> 	else
+> 		text_describe_system(innermost_planet);
+> }
+> 
+
+diff ../accrete/enviro.c ../accrete2/enviro.c
+185,186c200,203
+<      equatorial_radius_in_cm, change_in_angular_velocity, spin_resonance_period;
+---
+> 	spin_resonance_factor, year_in_hours, day_in_hours;
+188c205
+<      spin_resonance = FALSE;
+---
+>      resonance = FALSE;
+195,204c212,228
+<      base_angular_velocity = sqrt(2.0 * J * (planetary_mass_in_grams) / (k2 * pow(equatorial_radius_in_cm, 2.0)));
+<      /*   This next term describes how much a planet's rotation is slowed by    */
+<      /*  it's moons.  Find out what dw/dt is after figuring out Goldreich and   */
+<      /*  Soter's Q'.                                                            */
+<      change_in_angular_velocity = 0.0;
+<      temp = base_angular_velocity + (change_in_angular_velocity * age);
+<      /*   'temp' is now the angular velocity. Now we change from rad/sec to     */
+<      /*  hours/rotation.							   */
+<      temp = 1.0 / ((temp / radians_per_rotation) * SECONDS_PER_HOUR);
+<      if (temp >= orbital_period)
+---
+>      year_in_hours = orb_period * 24.0;
+>      base_angular_velocity = sqrt(2.0 * J * (planetary_mass_in_grams) /
+> 				  (k2 * pow2(equatorial_radius_in_cm)));
+> /*  This next calculation determines how much the planet's rotation is      */
+> /*  slowed by the presence of the star.					    */
+>      change_in_angular_velocity = CHANGE_IN_EARTH_ANG_VEL *
+> 				  (density / EARTH_DENSITY) *
+> 				  (equatorial_radius_in_cm / EARTH_RADIUS) *
+> 				  (EARTH_MASS_IN_GRAMS / planetary_mass_in_grams) *
+> 				  pow(stell_mass_ratio, 2.0) *
+> 				  (1.0 / pow(orb_radius, 6.0));
+>      ang_velocity = base_angular_velocity + (change_in_angular_velocity * age);
+> /* Now we change from rad/sec to hours/rotation.			    */
+>      if (ang_velocity <= 0.0)
+> 	stopped = TRUE;
+>      else day_in_hours = RADIANS_PER_ROTATION / (SECONDS_PER_HOUR * ang_velocity);
+>      if ((day_in_hours >= year_in_hours) || stopped)
+206d229
+< 	  spin_resonance_period = ((1.0 - eccentricity) / (1.0 + eccentricity)) * orbital_period;
+209,210c232,234
+< 	       temp = spin_resonance_period;
+< 	       spin_resonance = TRUE;
+---
+> 	    spin_resonance_factor = (1.0 - eccentricity) / (1.0 + eccentricity);
+> 	    resonance = TRUE;
+> 	    return(spin_resonance_factor * year_in_hours);
+213c237
+< 	       temp = orbital_period;
+---
+> 	    return(year_in_hours);
+215c239
+<      return(temp);
+---
+>      return(day_in_hours);

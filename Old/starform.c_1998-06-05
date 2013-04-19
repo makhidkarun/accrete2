@@ -1,0 +1,195 @@
+#include	<stdio.h>
+#include        <math.h>
+#include        <sys/types.h>
+#include        <sys/timeb.h>
+
+#ifdef MSDOS
+#include        <stddef.h>
+#include        <malloc.h>
+#include	<stdlib.h>
+#include        <float.h>
+#endif
+
+#include        "const.h"
+#include        "structs.h"
+
+/*  These are all of the global variables used during accretion:  */
+planet_pointer first_planet;
+#ifdef	MOON
+planet_pointer first_moon;
+#endif	/* MOON */
+double stellar_mass_ratio, stellar_luminosity_ratio, main_seq_life,
+     age, ecosphere_radius, greenhouse_radius;
+int flag_verbose=FALSE;
+long flag_seed=FALSE;
+int flag_lisp = FALSE;
+int flag_graphics = FALSE;
+int resonance;
+
+/* externals from C library not elsewhere declared: */
+extern void srand();
+
+extern double random_number();
+extern double luminosity();
+extern double stellar_dust_limit();
+extern planet_pointer distribute_planetary_masses();
+extern int orbital_zone();
+extern double empirical_density();
+extern double volume_density();
+extern double volume_radius();
+extern double kothari_radius();
+extern double period();
+extern double day_length();
+extern int inclination();
+extern double escape_vel();
+extern double acceleration();
+extern double rms_vel();
+extern double molecule_limit();
+extern double about();
+extern int greenhouse();
+extern double gravity();
+extern double vol_inventory();
+extern double pressure();
+extern double boiling_point();
+#ifdef	MOON
+extern planet_pointer distribute_moon_masses();
+extern double planet_dust_limit();
+#endif	/* MOON */
+
+
+void init()
+{
+        struct timeb grap;
+	int seed;
+	
+	if (flag_seed) {
+		(void)srand(flag_seed);
+		if (flag_lisp)
+			printf("(Accrete %s) ; seed: 0x%.8lx\n", "3.0", flag_seed);
+		else
+			printf("Accrete - V%s; seed=0x%.8lx\n", "3.0", flag_seed);
+	}
+	else {
+		/* ftime(&grap); */
+		/* seed = (int)((grap.time%100000)+grap.millitm); */
+                seed = time(NULL);
+		(void)srand(seed);
+		if (flag_lisp)
+			printf("(Accrete %s) ; seed: 0x%.8lx\n", "3.0", seed);
+		else
+			printf("Accrete - V%s; seed=0x%.8lx\n", "3.0", seed);
+	}
+}
+
+void generate_stellar_system()
+{
+     planet_pointer planet;
+     double outer_dust_limit;
+
+     stellar_mass_ratio = random_number(0.6,1.3);
+     stellar_luminosity_ratio = luminosity(stellar_mass_ratio);
+     outer_dust_limit = stellar_dust_limit(stellar_mass_ratio);
+     first_planet = distribute_planetary_masses(stellar_mass_ratio,stellar_luminosity_ratio,0.0,outer_dust_limit);
+     main_seq_life = 1.0E10 * (stellar_mass_ratio / stellar_luminosity_ratio);
+     if ((main_seq_life >= 6.0E9))
+	  age = random_number(1.0E9,6.0E9);
+     else 
+	  age = random_number(1.0E9,main_seq_life);
+     ecosphere_radius = sqrt(stellar_luminosity_ratio);
+     greenhouse_radius = ecosphere_radius * GREENHOUSE_EFFECT_CONST;
+     for (planet=first_planet; planet != NULL; planet = planet->next_planet)
+     {
+#ifdef	MOON
+	planet->first_moon = distribute_moon_masses (planet->mass, stellar_luminosity_ratio, planet->e, 0.0, planet_dust_limit(planet->mass));
+#endif	/* MOON */
+	  planet->orbit_zone = orbital_zone(planet->a);
+	  if (planet->gas_giant)
+	  {
+	       planet->density = empirical_density(planet->mass,planet->a,planet->gas_giant);
+	       planet->radius = volume_radius(planet->mass,planet->density);
+	  }
+	  else 
+	  {
+	       planet->radius = kothari_radius(planet->mass,planet->gas_giant,planet->orbit_zone);
+	       planet->density = volume_density(planet->mass,planet->radius);
+	  }
+	  planet->orbital_period = period(planet->a,planet->mass,stellar_mass_ratio);
+	  planet->day = day_length(planet->mass,planet->radius,planet->e,
+				   planet->density, planet->a,
+				   planet->orbital_period,planet->gas_giant);
+	  planet->resonant_period = resonance;
+	  planet->axial_tilt = inclination(planet->a);
+	  planet->escape_velocity = escape_vel(planet->mass,planet->radius);
+	  planet->surface_accel = acceleration(planet->mass,planet->radius);
+	  planet->rms_velocity = rms_vel(MOLECULAR_NITROGEN,planet->a);
+	  planet->molecule_weight = molecule_limit(planet->mass,planet->radius);
+	  if ((planet->gas_giant))
+	  {
+	       planet->surface_grav = INCREDIBLY_LARGE_NUMBER;
+	       planet->greenhouse_effect = FALSE;
+	       planet->volatile_gas_inventory = INCREDIBLY_LARGE_NUMBER;
+	       planet->surface_pressure = INCREDIBLY_LARGE_NUMBER;
+	       planet->boil_point = INCREDIBLY_LARGE_NUMBER;
+	       planet->hydrosphere = INCREDIBLY_LARGE_NUMBER;
+	       planet->albedo = about(GAS_GIANT_ALBEDO,0.1);
+	       planet->surf_temp = INCREDIBLY_LARGE_NUMBER;
+	  }
+	  else 
+	  {
+	       planet->surface_grav = gravity(planet->surface_accel);
+	       planet->greenhouse_effect = greenhouse(planet->orbit_zone,planet->a,greenhouse_radius);
+	       planet->volatile_gas_inventory = vol_inventory(planet->mass,planet->escape_velocity,planet->rms_velocity,stellar_mass_ratio,planet->orbit_zone,planet->greenhouse_effect);
+	       planet->surface_pressure = pressure(planet->volatile_gas_inventory,planet->radius,planet->surface_grav);
+	       if ((planet->surface_pressure == 0.0))
+		    planet->boil_point = 0.0;
+	       else 
+		    planet->boil_point = boiling_point(planet->surface_pressure);
+	       iterate_surface_temp(&(planet));
+	  }
+     }
+     display_system(first_planet);
+}
+
+
+main (argc, argv)
+int argc;
+char *argv[];
+{
+	char *c, *prognam;
+	int skip;
+
+	prognam = argv[0];
+	while (--argc > 0 && (*++argv)[0] == '-') {
+		for (c = argv[0]+1, skip=FALSE; (*c != '\0') && (!(skip)); c++)
+			switch (*c) 
+			{
+			case 'l':	/* set lisp output */
+				++flag_lisp;
+				break;
+			case 'g':	/* display graphically */
+				++flag_graphics;
+				break;
+			case 's':	/* set random seed */
+				flag_seed = atoi(&(*++c));
+				skip = TRUE;
+				break;
+			case 'v':	/* increment verbosity */
+				++flag_verbose;
+				break;
+			default:
+			case '?':
+				fprintf(stderr, "%s: Usage: %s [-l] [-g] [-s#] [-v]\n",
+					prognam, prognam);
+				fprintf(stderr, "\t-l    Lisp-style output\n");
+				fprintf(stderr, "\t-g    Display graphically\n");
+				fprintf(stderr, "\t-s#   Set seed for random number generator\n");
+				fprintf(stderr, "\t-v    Increment verbosity\n");
+				fprintf(stderr, "\t-h    Echo usage information\n");
+				return (1);
+			}
+	}
+	init();
+	generate_stellar_system();
+	return(0);
+}
+
