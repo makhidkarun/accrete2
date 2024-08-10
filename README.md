@@ -1,3 +1,9 @@
+# This repo is ARCHIVED
+Please see the Issues for reasons. We encourage contributions, if you want to contribute to the code base please ask a group moderator to unarchive the repo.
+
+
+
+
 This program is based on an article by Martyn Fogg in the Journal of the
 British Interplanetary Society (JBIS) called 'Extrasolar Planetary Systems:
 a Microcomputer Simulation'.  In it, he described how to generate various
